@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>点名抽签系统</title>
+    <!-- 引入SheetJS库解析表格文件 -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <!-- 引入Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --dark-gray: #333;
+            --border-color: #ddd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--dark-gray);
+            background-color: #f9f9f9;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .intro {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 6px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .upload-area:hover,
+        .upload-area:focus-within {
+            border-color: var(--primary-color);
+            background-color: rgba(52, 152, 219, 0.03);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-info {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .format-hint {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        #uploadStatus {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            min-height: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .data-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--light-gray);
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .draw-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+
+        .control-group {
+            background-color: var(--light-gray);
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .control-title {
+            margin-bottom: 15px;
+            color: var(--dark-gray);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-title i {
+            margin-right: 8px;
+            color: var(--primary-color);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            text-align: center;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .count-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button i {
+            margin-right: 8px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+        }
+
+        .results-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 20px;
+            border-radius: 6px;
+            min-height: 60px;
+            border: 1px solid var(--border-color);
+        }
+
+        .success {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+            border-color: #2ecc71;
+        }
+
+        .error {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+            border-color: #e74c3c;
+        }
+
+        .info {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+            border-color: #3498db;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-gray);
+            text-align: center;
+        }
+
+        .result-list {
+            list-style-position: inside;
+            padding-left: 5px;
+            text-align: center;
+        }
+
+        .result-list li {
+            margin-bottom: 8px;
+            padding: 8px 0;
+            font-size: 1.1rem;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+        }
+
+        .accessibility-note {
+            font-size: 0.9rem;
+            color: #777;
+            margin-top: 30px;
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>姓名抽签系统</h1>
+        <p class="intro">上传包含姓名名单的表格，进行随机抽取</p>
+    </header>
+
+    <!-- 表格导入区域 -->
+    <section class="upload-section">
+        <h2 class="section-title">上传表格文件</h2>
+        <div class="upload-area" tabindex="0" aria-label="点击或拖拽表格文件到此处上传，支持xlsx和csv格式">
+            <div class="upload-icon">
+                <i class="fas fa-file-upload"></i>
+            </div>
+            <p class="upload-info">点击或拖拽表格文件到此处上传</p>
+            <p class="format-hint">支持格式：.xlsx、.csv（请确保表格包含"姓名"列）</p>
+            <input type="file" id="fileInput" accept=".xlsx,.csv" aria-describedby="file-desc">
+        </div>
+        <div id="uploadStatus" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- 数据表格展示区域 -->
+    <section class="data-section" id="dataSection">
+        <h2 class="section-title">导入的姓名数据</h2>
+        <div class="table-container">
+            <table id="nameTable" aria-describedby="table-desc">
+                <caption id="table-desc">从上传文件中读取的姓名名单</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">序号</th>
+                        <th scope="col">姓名</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div id="dataSummary" class="info" role="status"></div>
+    </section>
+
+    <!-- 抽签控制区域 -->
+    <section class="draw-section" id="drawSection">
+        <h2 class="section-title">抽签设置</h2>
+        <div class="control-group">
+            <h3 class="control-title"><i class="fas fa-random"></i>姓名抽签</h3>
+            <div class="input-group">
+                <label for="nameCount">抽取人数：</label>
+                <input type="number" id="nameCount" min="1" max="" value="1" aria-required="true"
+                    aria-describedby="name-count-desc">
+                <p id="name-count-desc" class="count-info">总人数：<span id="totalNames">0</span>人</p>
+            </div>
+            <button id="drawBtn" aria-label="抽取姓名">
+                <i class="fas fa-random"></i>开始抽取
+            </button>
+        </div>
+    </section>
+
+    <!-- 结果展示区域 -->
+    <section class="results-section">
+        <h2 class="section-title">抽签结果</h2>
+        <div id="result" class="result-box" role="status" aria-live="polite">等待抽签结果...</div>
+    </section>
+
+    <p class="accessibility-note">支持键盘操作：Tab键切换焦点，Enter键触发按钮功能</p>
+
+    <script>
+        // 初始化元素
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const dataSection = document.getElementById('dataSection');
+        const tableBody = document.getElementById('tableBody');
+        const dataSummary = document.getElementById('dataSummary');
+        const drawSection = document.getElementById('drawSection');
+        const nameCountInput = document.getElementById('nameCount');
+        const totalNamesElement = document.getElementById('totalNames');
+        const drawBtn = document.getElementById('drawBtn');
+        const resultDiv = document.getElementById('result');
+
+        // 存储姓名数据
+        let nameData = [];
+
+        // 上传区域交互（点击/拖拽）
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary-color)';
+            uploadArea.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'var(--border-color)';
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--border-color)';
+            uploadArea.style.backgroundColor = 'transparent';
+
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // 处理上传的表格文件
+        function handleFile(file) {
+            // 显示加载状态
+            showUploadStatus('正在解析文件...', 'info');
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    // 解析表格文件
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // 获取第一个工作表数据
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+
+                    // 转换为JSON格式
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length < 1) {
+                        showUploadStatus('表格为空，未找到任何数据', 'error');
+                        return;
+                    }
+
+                    // 查找"姓名"列索引
+                    const headerRow = jsonData[0];
+                    const nameColumnIndex = headerRow.findIndex(cell =>
+                        cell && String(cell).trim() === '姓名'
+                    );
+
+                    // 验证列是否存在
+                    if (nameColumnIndex === -1) {
+                        showUploadStatus('表格中未找到"姓名"列，请检查文件格式', 'error');
+                        return;
+                    }
+
+                    // 提取数据（跳过表头）
+                    nameData = [];
+
+                    jsonData.slice(1).forEach(row => {
+                        // 提取姓名数据
+                        const name = row[nameColumnIndex] ? String(row[nameColumnIndex]).trim() : '';
+                        if (name && name !== '') {
+                            nameData.push(name);
+                        }
+                    });
+
+                    // 验证是否有有效数据
+                    if (nameData.length === 0) {
+                        showUploadStatus('表格中未找到有效数据', 'error');
+                        return;
+                    }
+
+                    // 更新UI显示
+                    renderTable();
+                    updateDataSummary();
+
+                    // 显示抽签区域并更新人数限制
+                    drawSection.style.display = 'block';
+                    nameCountInput.max = nameData.length;
+                    totalNamesElement.textContent = nameData.length;
+
+                    showUploadStatus(`成功导入数据：共 ${nameData.length} 人`, 'success');
+
+                } catch (err) {
+                    console.error('文件解析错误:', err);
+                    showUploadStatus('文件解析失败，请确保文件格式正确: ' + err.message, 'error');
+                }
+            };
+
+            // 根据文件类型读取
+            if (file.name.endsWith('.xlsx')) {
+                reader.readAsArrayBuffer(file);
+            } else if (file.name.endsWith('.csv')) {
+                reader.readAsText(file, 'UTF-8');
+            } else {
+                showUploadStatus('不支持的文件格式，请上传.xlsx或.csv文件', 'error');
+            }
+        }
+
+        // 渲染表格数据
+        function renderTable() {
+            tableBody.innerHTML = '';
+            dataSection.style.display = 'block';
+
+            for (let i = 0; i < nameData.length; i++) {
+                const row = document.createElement('tr');
+
+                // 序号
+                const indexCell = document.createElement('td');
+                indexCell.textContent = i + 1;
+                row.appendChild(indexCell);
+
+                // 姓名
+                const nameCell = document.createElement('td');
+                nameCell.textContent = nameData[i];
+                row.appendChild(nameCell);
+
+                tableBody.appendChild(row);
+            }
+        }
+
+        // 更新数据摘要
+        function updateDataSummary() {
+            dataSummary.textContent = `共导入 ${nameData.length} 人`;
+            dataSummary.setAttribute('aria-label', `共导入 ${nameData.length} 人`);
+        }
+
+        // 显示上传状态
+        function showUploadStatus(text, type) {
+            uploadStatus.textContent = text;
+            uploadStatus.className = type;
+            uploadStatus.setAttribute('aria-label', text);
+        }
+
+        // 抽取姓名
+        function drawNames() {
+            const count = parseInt(nameCountInput.value);
+
+            // 验证输入
+            if (isNaN(count) || count < 1 || count > nameData.length) {
+                showResult('抽取失败', `请输入1到${nameData.length}之间的有效数字`, 'error');
+                return;
+            }
+
+            // 复制数据避免修改原数组
+            const candidates = [...nameData];
+            const results = [];
+
+            // 随机抽取
+            for (let i = 0; i < count; i++) {
+                const randomIndex = Math.floor(Math.random() * candidates.length);
+                results.push(candidates.splice(randomIndex, 1)[0]);
+            }
+
+            showResult('抽签结果', results);
+        }
+
+        // 显示抽签结果
+        function showResult(title, content, type = 'success') {
+            let resultHtml = `<div class="result-title">${title}</div>`;
+
+            if (Array.isArray(content)) {
+                resultHtml += '<ul class="result-list">';
+                content.forEach((item, index) => {
+                    resultHtml += `<li>${index + 1}. ${item}</li>`;
+                });
+                resultHtml += '</ul>';
+            } else {
+                resultHtml += `<p>${content}</p>`;
+            }
+
+            resultDiv.innerHTML = resultHtml;
+            resultDiv.className = `result-box ${type}`;
+
+            // 为屏幕阅读器设置 aria-label
+            const ariaLabel = Array.isArray(content) ?
+                `${title}：${content.join('、')}` :
+                `${title}：${content}`;
+            resultDiv.setAttribute('aria-label', ariaLabel);
+        }
+
+        // 绑定事件
+        drawBtn.addEventListener('click', drawNames);
+
+        // 支持键盘回车触发抽签
+        nameCountInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') drawNames();
+        });
+    </script>
+</body>
+
+</html>
