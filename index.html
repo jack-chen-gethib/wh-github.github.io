@@ -350,7 +350,7 @@
                 <i class="fas fa-file-upload"></i>
             </div>
             <p class="upload-info">点击或拖拽表格文件到此处上传</p>
-            <p class="format-hint">支持格式：.xlsx、.csv（请确保表格包含"学号"、"姓名"和"专业"列）</p>
+            <p class="format-hint">支持格式：.xlsx、.csv（请确保表格<strong>第三行</strong>包含"学号"、"姓名"和"专业"列）</p>
             <input type="file" id="fileInput" accept=".xlsx,.csv" aria-describedby="file-desc">
         </div>
         <div id="uploadStatus" role="status" aria-live="polite"></div>
@@ -361,7 +361,7 @@
         <h2 class="section-title">导入的学生数据</h2>
         <div class="table-container">
             <table id="nameTable" aria-describedby="table-desc">
-                <caption id="table-desc">从上传文件中读取的学生信息名单</caption>
+                <caption id="table-desc">从上传文件中读取的学生信息名单（已跳过前两行无效数据）</caption>
                 <thead>
                     <tr>
                         <th scope="col">序号</th>
@@ -463,17 +463,17 @@
                     // 获取第一个工作表数据
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-
-                    // 转换为JSON格式
+                                        // 转换为JSON格式
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    if (jsonData.length < 1) {
-                        showUploadStatus('表格为空，未找到任何数据', 'error');
+                    // 验证表格行数
+                    if (jsonData.length < 3) {
+                        showUploadStatus('表格行数不足，需至少包含4行（前三行+列名行）', 'error');
                         return;
                     }
 
-                    // 查找"学号"、"姓名"和"专业"列索引
-                    const headerRow = jsonData[0];
+                    // 从第四行（索引3）读取列名）
+                    const headerRow = jsonData[3];
                     const idColumnIndex = headerRow.findIndex(cell =>
                         cell && String(cell).trim() === '学号'
                     );
@@ -486,14 +486,13 @@
 
                     // 验证列是否存在
                     if (idColumnIndex === -1 || nameColumnIndex === -1 || majorColumnIndex === -1) {
-                        showUploadStatus('表格中未找到"学号"、"姓名"或"专业"列，请检查文件格式', 'error');
+                        showUploadStatus('表格第三行未找到"学号"、"姓名"或"专业"列，请检查文件格式', 'error');
                         return;
                     }
 
-                    // 提取数据（跳过表头）
+                    // 从第五行（索引4）开始读取数据，跳过前4行（前三行+列名行）
                     studentData = [];
-
-                    jsonData.slice(1).forEach(row => {
+                    jsonData.slice(4).forEach(row => {
                         // 提取学生数据
                         const studentId = row[idColumnIndex] ? String(row[idColumnIndex]).trim() : '';
                         const studentName = row[nameColumnIndex] ? String(row[nameColumnIndex]).trim() : '';
@@ -510,7 +509,7 @@
 
                     // 验证是否有有效数据
                     if (studentData.length === 0) {
-                        showUploadStatus('表格中未找到有效数据', 'error');
+                        showUploadStatus('表格中未找到有效学生数据（数据需在第四行及以后）', 'error');
                         return;
                     }
 
@@ -523,7 +522,7 @@
                     studentCountInput.max = studentData.length;
                     totalStudentsElement.textContent = studentData.length;
 
-                    showUploadStatus(`成功导入数据：共 ${studentData.length} 名学生`, 'success');
+                    showUploadStatus(`成功导入数据：共 ${studentData.length} 名学生（已跳过前3行）`, 'success');
 
                 } catch (err) {
                     console.error('文件解析错误:', err);
@@ -676,5 +675,4 @@
         });
     </script>
 </body>
-
 </html>
